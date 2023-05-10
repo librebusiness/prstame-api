@@ -1,6 +1,6 @@
 import express, { Request, Response, Router } from 'express';
 import { User } from '../models/user';
-import { hash } from 'bcrypt';
+import { hash, compare } from 'bcrypt';
 import { sign } from 'jsonwebtoken';
 
 export const auth = express();
@@ -12,25 +12,24 @@ authRouter.post('/login', (req: Request, res: Response) => {
     if (email && password) {
         User.findOne({ email }).then(user => {
             if (user) {
-                hash(password, 10).then(encrypted => {
-                    if (encrypted == user.password) {
-                        const { JWT_SECRET } = process.env;
-                        const token = sign({
-                            user_id: user._id,
-                            email: user.email,
-                        }, JWT_SECRET as any as string, { expiresIn: '30d' });
-                        const { password, ...data} = user;
-                        const payload = {
-                            token,
-                            code: 201,
-                            message: 'User authenticated',
-                            data,
-                        };
-                        res.status(201).json(payload);
-                    } else {
-                        res.status(403).json({ code: 403, message: 'Wrong password.'});
-                    }
-                })
+                compare(password, user.password).then(encrypted => {
+                    const { JWT_SECRET } = process.env;
+                    const token = sign({
+                        user_id: user._id,
+                        email: user.email,
+                    }, JWT_SECRET as any as string, { expiresIn: '30d' });
+                    const { password, ...data} = (user as any)._doc;
+                    const payload = {
+                        token,
+                        code: 201,
+                        message: 'User authenticated',
+                        data,
+                    };
+                    res.status(201).json(payload);
+                },
+                (error) => {
+                    res.status(403).json({ code: 403, message: error.message });
+                });
             } else {
                 res.status(404).json({ code: 404, message: 'User not found' });
             }
@@ -49,7 +48,7 @@ authRouter.post('/signup', (req: Request, res: Response) => {
                     email,
                     password: encrypted
                 };
-    
+
                 const user = new User(data);
                 user.save().then(
                     () => {
