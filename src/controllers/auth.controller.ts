@@ -6,12 +6,8 @@ import { config } from 'dotenv';
 import { sendPasswordRecoveryEmail } from '../mailers/auth.mailer';
 import { Session } from '../models/session.model';
 import { User } from '../models/user.model';
-import { generateToken } from '../helpers/auth.helper';
+import { generateToken, createAuthToken } from '../helpers/auth.helper';
 config();
-
-const {
-    JWT_SECRET
-} = process.env;
 
 export const authController = express();
 
@@ -33,10 +29,7 @@ authRouter.post('/signup', (req: Request, res: Response) => {
                     (data) => {
                         const session = new Session({ user_id: user._id });
                         session.save();
-                        const token = sign({
-                            user_id: user._id,
-                            email: user.email,
-                        }, JWT_SECRET as any as string, { expiresIn: '30d' });
+                        const token = createAuthToken(user);
                         const { password, ...userData} = (user as any)._doc;
                         const payload = {
                             token,
@@ -68,10 +61,7 @@ authRouter.post('/login', (req: Request, res: Response) => {
             if (user) {
                 compare(password, user.password).then(result => {
                     if (result) {
-                        const token = sign({
-                            user_id: user._id,
-                            email: user.email,
-                        }, JWT_SECRET as any as string, { expiresIn: '30d' });
+                        const token = createAuthToken(user);
                         const { password, ...data} = (user as any)._doc;
                         const payload = {
                             token,
@@ -172,10 +162,7 @@ authRouter.post('/password-reset', (req: Request, res: Response) => {
                                         message: 'Password updated'
                                     });
                                 }
-                                const token = sign({
-                                    user_id: req.body._id,
-                                    email: user.email,
-                                }, JWT_SECRET as any as string, { expiresIn: '30d' });
+                                const token = createAuthToken(user);
                                 const { password, ...data} = user;
                                 const payload = {
                                     token,
