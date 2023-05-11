@@ -35,8 +35,8 @@ export const sendEmailChangeConfirmEmail = (payload: { to: string, _id: string, 
 	return sendHtmlEmail({
 		from: '"Otoniel Reyes Galay" <otoniel@otonielreyes.com>',
 		to,
-		subject: "Email address confirmation",
-		html: `To confirm your email address click the link bellow.<br/>
+		subject: "Email address change confirmation",
+		html: `To change and confirm your new email address click the link bellow.<br/>
         <a href="${MAIL_BUTTON_HOST}/user/change-email/${_id}/${confirmation_token}">Confirm my email now</a>
         `
 	});
