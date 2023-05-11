@@ -58,4 +58,26 @@ userRouter.post('/update-password', requiresAuthentication, (req: Request, res: 
     }
 });
 
+userRouter.get('/profile', requiresAuthentication, (req: Request, res: Response) => {
+    const _id = (req as any).user.user_id;
+    User.findOne({ _id }).then(user => {
+        if (user) {
+            res.json({
+                code: 200,
+                data: user
+            });
+        } else {
+            res.status(400).json({
+                code: 400,
+                message: 'Bad request'
+            });
+        }
+    }).catch(error => {
+        res.status(500).json({
+            code: 500,
+            message: error.message
+        });
+    });
+})
+
 userController.use('/', userRouter);
