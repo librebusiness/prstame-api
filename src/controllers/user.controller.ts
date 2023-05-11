@@ -62,9 +62,10 @@ userRouter.get('/profile', requiresAuthentication, (req: Request, res: Response)
     const _id = (req as any).user.user_id;
     User.findOne({ _id }).then(user => {
         if (user) {
+            const { password, ...data } = (user as any)._doc;
             res.json({
                 code: 200,
-                data: user
+                data
             });
         } else {
             res.status(400).json({
