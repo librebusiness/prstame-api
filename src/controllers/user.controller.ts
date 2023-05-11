@@ -16,7 +16,7 @@ userRouter.post('/update-password', requiresAuthentication, (req: Request, res: 
                 compare(req.body.oldPassword, user.password).then(result => {
                     if (result) {
                         hash(req.body.password, 10).then(password => {
-                            User.updateOne((req as any).user.user_id, { password }).then(() => {
+                            User.updateOne({ _id: (req as any).user.user_id }, { password }).then(() => {
                                 res.json({
                                     code: 201,
                                     message: 'Password Updated'
