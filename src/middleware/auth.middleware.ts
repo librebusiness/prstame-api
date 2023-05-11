@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { User } from "../models/user";
+import { User } from "../models/user.model";
 import { verify } from "jsonwebtoken";
 
 export function requiresAuthentication(req: Request, res: Response, next: NextFunction) {

@@ -7,7 +7,8 @@ import helmet from 'helmet';
 import mongoose from 'mongoose';
 import { config } from 'dotenv';
 
-import { auth } from './routes/auth';
+import { authController } from './controllers/auth.controller';
+import { userController } from './controllers/user.controller';
 
 config();
 
@@ -35,7 +36,8 @@ app.use(logger('dev'));
 app.use(json());
 app.use(helmet());
 
-app.use('/auth', auth);
+app.use('/auth', authController);
+app.use('/user', userController);
 
 app.use('/', (req: Request, res: Response) => {
     res.send('Welcome!');
