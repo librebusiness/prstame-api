@@ -65,7 +65,6 @@ userRouter.post('/confirm-email', requiresAuthentication, (req: Request, res: Re
     const confirmation_token = generateToken();
     User.findOne({ _id: (req as any).user.user_id }).then(async (user) => {
         const session = await Session.updateOne({ user_id: (req as any).user.user_id }, {
-            expires: new Date(Date.now() + (1000*60*60*24)),
             emailConfirmationRequestToken: confirmation_token,
         });
         if (user) {
@@ -101,7 +100,6 @@ userRouter.post('/confirm-email/:id', (req: Request, res: Response) => {
     if (req.body.confirmation_token) {
         Session.updateOne({ user_id: _id, emailConfirmationRequestToken: req.body.confirmation_token }, {
             emailConfirmationRequestToken: null,
-            expires: new Date()
         }).then(count => {
             if (count) {
                 User.updateOne({ _id }, {
@@ -134,10 +132,14 @@ userRouter.post('/confirm-email/:id', (req: Request, res: Response) => {
 
 userRouter.post('/update-email', requiresAuthentication, (req: Request, res: Response) => {
     if (req.body.email) {
+        const _id = (req as any).user.user_id;
         const confirmation_token = generateToken();
-        User.findOne({ _id: (req as any).user.user_id }).then(user => {
-            if (user) {
-                sendEmailChangeConfirmEmail({ to: req.body.email, _id: req.body._id, confirmation_token }).then(() => {
+        Session.updateOne({ user_id: _id }, {
+            emailUpdateRequestToken: confirmation_token,
+            targetEmail: req.body.email,
+        }).then(count => {
+            if (count) {
+                sendEmailChangeConfirmEmail({ to: req.body.email, _id, confirmation_token }).then(() => {
                     res.status(201).json({
                         code: 201,
                         message: 'Check your email to confirm the change'
@@ -148,7 +150,7 @@ userRouter.post('/update-email', requiresAuthentication, (req: Request, res: Res
             } else {
                 res.json({
                     code: 404,
-                    message: 'User not found'
+                    message: 'Invalid request'
                 });
             }
         },
@@ -165,22 +167,39 @@ userRouter.post('/update-email', requiresAuthentication, (req: Request, res: Res
 
 userRouter.post('/update-email/:id', (req: Request, res: Response) => {
     const _id = req.params.id;
-    if (req.body.email) {
-        const confirmation_token = generateToken();
-        User.findOne({ _id }).then(user => {
-            if (user) {
-                sendEmailChangeConfirmEmail({ to: req.body.email, _id: req.body._id, confirmation_token }).then(() => {
-                    res.status(201).json({
-                        code: 201,
-                        message: 'Check your email to confirm the change'
-                    });
+    if (req.body.confirmation_token) {
+        const confirmation_token = req.body.confirmation_token;
+        Session.updateOne({
+            user_id: _id,
+            emailUpdateRequestToken: confirmation_token
+        }, { emailUpdateRequestToken: null }).then(async count => {
+            const session = await Session.findOne({ user_id: _id });
+            if (!session) {
+                return res.status(400).json({
+                    code: 400,
+                    message: 'Invalid request.'
+                });
+            }
+            if (count) {
+                User.updateOne({ _id }, { emailConfirmed: true, email: session.targetEmail }).then((updated) => {
+                    if (updated) {
+                        res.status(201).json({
+                            code: 201,
+                            message: 'Email updated'
+                        });
+                    } else {
+                        res.status(500).json({
+                            code: 500,
+                            message: 'Email unchanged'
+                        });
+                    }
                 }).catch(error => {
                     res.status(400).json({ code: 403, message: error.message });
                 });
             } else {
-                res.json({
-                    code: 404,
-                    message: 'User not found'
+                res.status(400).json({
+                    code: 400,
+                    message: 'Invalid request.'
                 });
             }
         },
@@ -190,7 +209,7 @@ userRouter.post('/update-email/:id', (req: Request, res: Response) => {
     } else {
         res.json({
             code: 400,
-            message: 'Missing email',
+            message: 'Missing confirmation token',
         });
     }
 });
@@ -227,7 +246,7 @@ userRouter.post('/profile', requiresAuthentication, (req: Request, res: Response
         if (count) {
             const user = await User.findOne({ _id });
             if (!user) {
-                res.json({
+                return res.json({
                     code: 200,
                     message: 'User profiled updated.'
                 });
