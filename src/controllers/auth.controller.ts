@@ -3,7 +3,7 @@ import { hash, compare } from 'bcrypt';
 import { sign } from 'jsonwebtoken';
 import { createTransport } from 'nodemailer';
 import { config } from 'dotenv';
-import { sendPasswordRecoveryEmail } from '../mailers/auth.mailer';
+import { sendPasswordRecoveryEmail, sendWelcomeEmail } from '../mailers/auth.mailer';
 import { Session } from '../models/session.model';
 import { User } from '../models/user.model';
 import { generateToken, createAuthToken } from '../helpers/auth.helper';
@@ -26,7 +26,7 @@ authRouter.post('/signup', (req: Request, res: Response) => {
 
                 const user = new User(data);
                 user.save().then(
-                    (data) => {
+                    async (data) => {
                         const session = new Session({ user_id: user._id });
                         session.save();
                         const token = createAuthToken(user);
@@ -37,6 +37,7 @@ authRouter.post('/signup', (req: Request, res: Response) => {
                             message: 'User created',
                             data: userData,
                         };
+                        await sendWelcomeEmail(email);
                         res.status(201).json(payload);
                     },
                     (error) => {

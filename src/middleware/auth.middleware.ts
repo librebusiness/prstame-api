@@ -3,7 +3,7 @@ import { User } from "../models/user.model";
 import { verify } from "jsonwebtoken";
 
 export function requiresAuthentication(req: Request, res: Response, next: NextFunction) {
-    const token = req.body.token || req.query.token || req.headers['x-access-token'] || req.headers['authorization']?.slice(6);
+    const token = req.body['access-token'] || req.query['access-token'] || req.headers['x-access-token'] || req.headers['authorization']?.slice(6);
 
     if (!token) {
         return res.status(403).json({ code: 403, message: 'Missing access token.' });
